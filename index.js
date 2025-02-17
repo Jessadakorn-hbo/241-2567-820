@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const mysql = require('mysql2/promise');
 const app = express();
 
 app.use(bodyParser.json());
@@ -17,8 +18,24 @@ DELETE /user/:id สำหรับลบ user รายคนที่ต้อ
 GET /user/:id สำหรับ get ข้อมูล user รายคนที่ต้องการ
 */
 // path = GET /users
-app.get('/users', (req, res) => {
-  res.json(users);
+
+app.get('/testdb', (req, res) => {  
+  mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'root',
+    database: 'webdb'
+  }).then((conn) => {
+    conn
+    .query('SELECT * FROM user')
+    .then((results) => {
+      res.json(results[0])
+    })
+    .catch((error) => {
+      console.log('Error fetching users:',error.message)
+      res.status(500).json({error: error.message})
+    })
+  })
 })
 
 // path = POST/user
@@ -43,7 +60,7 @@ app.put('/user/:id', (req, res) => {
 if (updateUser.firstname) {
   users[selectedIndex].firstname = updateUser.firstname
 }
-  
+ 
 if (updateUser.lastname) {
   user[selectedIndex].lastname = updateUser.lastname || users[selectedIndex].lastname
 }
