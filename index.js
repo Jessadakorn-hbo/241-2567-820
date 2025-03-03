@@ -1,9 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
+const cors = require('cors');
 const app = express();
 
 app.use(bodyParser.json());
+app.use(cors());
 const port = 8000;
 
 // เก็บ user
@@ -19,51 +21,64 @@ GET /user/:id สำหรับ get ข้อมูล user รายคนท�
 */
 // path = GET /users
 
-app.get('/testdb', (req, res) => {  
-  mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root',
-    database: 'webdb'
-  }).then((conn) => {
-    conn
-    .query('SELECT * FROM user')
-    .then((results) => {
-      res.json(results[0])
-    })
-    .catch((error) => {
-      console.log('Error fetching users:',error.message)
-      res.status(500).json({error: error.message})
-    })
+app.get('/users/:id', async(req, res) => {  
+try{
+  let id = req.params.id;
+  const results = await conn.query('SELECT * FROM users WHERE id = ?', id)
+  if (results[0].length == 0) {
+    throw {statusCode: 404, message: 'User not found'}
+  }
+  res.json(results[0][0])
+} catch (error) {
+  console.error('errorMessage',error.message)
+  let statusCode = error.statusCode || 500
+  res.status(statusCode).json({
+    message: 'something went wrong',
+    errorMessage: error.message
   })
-})
+}
 
 // path = POST/user
-app.post('/user', (req, res) => {
-  let user = req.body;
-  user.id = counter
-  counter += 1
-  users.push(user);
+app.post('/users', (req, res) => {
+  try{
+    let user = req.body;
+    let user = req.body;
+  const results = await conn.query('INSERT INTO users SET ?',user)
+  console.log('results',results)
   res.json({
-    message: 'User created',
-    user: user
-  });
+    message: 'user created',
+    data: results[0]
+  })
+  } catch (error) {
+      res.status(500).json({
+        message: 'something went wrong',
+        errorMessage: error.message
+      })   
+  }
 })
 
 // path = PUT /user/:id
-app.put('/user/:id', (req, res) => {
-  let id = req.params.id;
+app.put('/user/:id', async (req, res) => {
+  
+  try{
+    let id = req.params.id;
   let updateUser = req.body;
-// หา index ของ user ที่ต้องการ update
-  let selectedIndex = users.findIndex(user => user.id == id)
-// update ข้อมูล user
-if (updateUser.firstname) {
-  users[selectedIndex].firstname = updateUser.firstname
-}
- 
-if (updateUser.lastname) {
-  user[selectedIndex].lastname = updateUser.lastname || users[selectedIndex].lastname
-}
+  const results = await conn.query(
+    'UPDATE users SET ? WHERE id = ?',
+    [updateUser, id]
+  )
+  res.json({
+    message: 'User Update Complete',
+    data: results[0]
+  })
+  } catch (error) {
+      console.error('errorMessage',error.message)   
+      res.status(500).json({
+        message: 'something went wrong',
+        errorMessage: error.message
+      })   
+  }
+
 
   res.json({
     message: 'User updated',
@@ -76,17 +91,25 @@ if (updateUser.lastname) {
 
 // path = DELETE /user/:id
 app.delete('/user/:id', (req, res) => {
-  let id = req.params.id;
-  // หา index ของ user ที่ต้องการลบ
-  let selectedIndex = users.findIndex(user => user.id == id)
-
-  users.splice(selectedIndex, 1)
+  try {
+    let id = req.params.id;
+  const results = await conn.query('DELETE FROM Users WHERE id = ?',id)
   res.json({
-    message: "Deleted Completed",
-    indexDeleted: selectedIndex
+    message: 'Delete User Complete',
+    data: results[0]
+  })
+  } catch (error) {
+      console.error('errorMessage',error.message)   
+      res.status(500).json({
+        message: 'something went wrong',
+        errorMessage: error.message
+      })   
+    }
   });
-})
+
+
 
 app.listen(port, (req,res) => {
   console.log('Server is running on port '+ port);
+
 });
